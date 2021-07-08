@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
@@ -11,205 +11,154 @@ namespace shopapp
     {
         private const string ConnectionString = @"Data Source=DEVSQL;Initial Catalog=blog-system;Pooling=true;Integrated Security=SSPI;MultiSubnetFailover=true";
 
-        static void Main(string[] args)
+        static void Main( string[] args )
         {
-            string command = args[0];
-
-            switch (command)
+            Console.WriteLine( "Enter what you want(ReadOrders | ReadCustomers| InsertOrder | GetInfo)" );
+            string command = Console.ReadLine();
+            while ( command != "Stop" )
             {
-                case "readorders":
+                if ( command == "ReadOrders" )
+                {
                     List<Order> orders = ReadOrder();
-                    foreach (Order order in orders)
+                    foreach ( Order order in orders )
                     {
-                        Console.WriteLine(order.ProductName, ' ', order.Price);
+                        Console.WriteLine( order.ProductName );
                     }
-                    break;
-
-                case "readcustomers":
+                }
+                else if ( command == "ReadCustomers" )
+                {
                     List<Customer> customers = ReadCustomer();
-                    foreach (Customer customer in customers)
-                    {
-                        Console.WriteLine(customer.Name, ' ', customer.City);
-                    }
-                    break;
-
-                case "insertorder":
-                    int createdOrderId = InsertOrder("Мармелад", 140, 1);
-                    Console.WriteLine("Created order: " + createdOrderId);
-                    break;
-
-                case "insertcustomer":
-                    int createdCustomerId = InsertCustomer("Сергей", "Йошкар-Ола");
-                    Console.WriteLine("Created cusromer: " + createdCustomerId);
-                    break;
-
-                case "updateorderprice":
-                    UpdateOrderPrice(1, "100");
-                    break;
-
-                case "updatecustomercity":
-                    UpdateCustomerCity(1, "Мытищи");
-                    break;
+                }
+                else if ( command == "InsertOrder" )
+                {
+                    int createdOrderId = InsertOrder();
+                    Console.WriteLine( "Created order: " + createdOrderId );
+                }
+                else if ( command == "InsertCustomer" )
+                {
+                    int createdCustomerId = InsertCustomer();
+                    Console.WriteLine( "Created customer id: " + createdCustomerId );
+                }
+                else if ( command == "Getinfo" )
+                {
+                    GetInfo();
+                }
             }
         }
 
         private static List<Order> ReadOrder()
         {
             List<Order> orders = new List<Order>();
-            using (var connection = new SqlConnection(ConnectionString))
+            using ( var connection = new SqlConnection( ConnectionString ) )
             {
                 connection.Open();
-                using (var command = new SqlCommand())
-                {
-                    command.Connection = connection;
-                    command.CommandText =
-                        @"SELECT
+                using var command = new SqlCommand();
+                command.Connection = connection;
+                command.CommandText =
+                    @"SELECT
                             [OrderId],
                             [ProductName],
                             [Price],
                             [CustomerId]
                         FROM Order";
 
-                    using (var reader = command.ExecuteReader())
+                using var reader = command.ExecuteReader();
+                while ( reader.Read() )
+                {
+                    var order = new Order
                     {
-                        while (reader.Read())
-                        {
-                            var order = new Order
-                            {
-                                OrderId = Convert.ToInt32(reader["OrderId"]),
-                                ProductName = Convert.ToString(reader["ProductName"]),
-                                Price = Convert.ToInt32(reader["Price"]),
-                                CustomerId = Convert.ToInt32(reader["CustomerId"])
-                            };
-                            orders.Add(order);
-                        }
-                    }
+                        OrderId = Convert.ToInt32( reader[ "OrderId" ] ),
+                        ProductName = Convert.ToString( reader[ "ProductName" ] ),
+                        Price = Convert.ToInt32( reader[ "Price" ] ),
+                        CustomerId = Convert.ToInt32( reader[ "CustomerId" ] )
+                    };
+                    orders.Add( order );
                 }
             }
             return orders;
         }
-
         private static List<Customer> ReadCustomer()
         {
             List<Customer> customers = new List<Customer>();
-            using (var connection = new SqlConnection(ConnectionString))
+            using ( SqlConnection connection = new SqlConnection( ConnectionString ) )
             {
                 connection.Open();
-                using (var command = new SqlCommand())
-                {
-                    command.Connection = connection;
-                    command.CommandText =
-                        @"SELECT
-                            [CustomerId],
-                            [Name],
-                            [City],
+                using SqlCommand command = new();
+                command.Connection = connection;
+                command.CommandText =
+                    @"SELECT
+                            [customerId],
+                            [name],
+                            [city],
                         FROM Customer";
 
-                    using (var reader = command.ExecuteReader())
+                using SqlDataReader reader = command.ExecuteReader();
+                while ( reader.Read() )
+                {
+                    var customer = new Customer
                     {
-                        while (reader.Read())
-                        {
-                            var customer = new Customer
-                            {
-                                CustomerId = Convert.ToInt32(reader["CustomerId"]),
-                                Name = Convert.ToString(reader["Name"]),
-                                City = Convert.ToString(reader["City"])
-                            };
-                            customers.Add(customer);
-                        }
-                    }
+                        CustomerId = Convert.ToInt32( reader[ "customerId" ] ),
+                        Name = Convert.ToString( reader[ "name" ] ),
+                        City = Convert.ToString( reader[ "city" ] )
+                    };
+                    customers.Add( customer );
                 }
             }
             return customers;
         }
 
-        private static int InsertOrder(string productName, int price, int customerId)
+        private static int InsertOrder()
         {
-            using (var connection = new SqlConnection(ConnectionString))
-            {
-                connection.Open();
-                using (var cmd = connection.CreateCommand())
-                {
-                    cmd.CommandText = @"
+            Console.WriteLine( "Enter CustomerId: " );
+            int CustomerId = int.Parse( Console.ReadLine() );
+            Console.WriteLine( "Name of Product: " );
+            string ProductName = Console.ReadLine();
+            Console.WriteLine( "Price: " );
+            int Price = int.Parse( Console.ReadLine() );
+            using var connection = new SqlConnection( ConnectionString );
+            connection.Open();
+            using SqlCommand cmd = connection.CreateCommand();
+            cmd.CommandText = @"
                     INSERT INTO [Order]
-                       ([ProductName],
-                        [Price],
-                        [CustomerId]) 
+                       ([productName],
+                        [price],
+                        [customerId]) 
                     VALUES 
                        (@productName,
                         @price,
                         @customerId)
                     SELECT SCOPE_IDENTITY()";
 
-                    cmd.Parameters.Add("@productName", SqlDbType.NVarChar).Value = productName;
-                    cmd.Parameters.Add("@price", SqlDbType.Int).Value = price;
-                    cmd.Parameters.Add("@customerId", SqlDbType.Int).Value = customerId;
+            cmd.Parameters.Add( "@productName", SqlDbType.NVarChar ).Value = productName;
+            cmd.Parameters.Add( "@price", SqlDbType.Int ).Value = price;
+            cmd.Parameters.Add( "@customerId", SqlDbType.Int ).Value = customerId;
 
-                    return Convert.ToInt32(cmd.ExecuteScalar());
-                }
-            }
+            return Convert.ToInt32( cmd.ExecuteScalar() );
         }
 
-        private static int InsertCustomer(string name, string city)
+        private static int InsertCustomer()
         {
-            using (var connection = new SqlConnection(ConnectionString))
-            {
-                connection.Open();
-                using (var cmd = connection.CreateCommand())
-                {
-                    cmd.CommandText = @"
+            Console.WriteLine( "Enter Name: " );
+            string Name = Console.ReadLine();
+            Console.WriteLine( "City: " );
+            string City = Console.ReadLine();
+            using var connection = new SqlConnection( ConnectionString );
+            connection.Open();
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = @"
                     INSERT INTO [Customer]
-                       ([Name],
-                        [City]) 
+                       ([name],
+                        [city]) 
                     VALUES 
                        (@name,
                         @city)
                     SELECT SCOPE_IDENTITY()";
 
-                    cmd.Parameters.Add("@name", SqlDbType.NVarChar).Value = name;
-                    cmd.Parameters.Add("@city", SqlDbType.NVarChar).Value = city;
+            cmd.Parameters.Add( "@name", SqlDbType.NVarChar ).Value = name;
+            cmd.Parameters.Add( "@city", SqlDbType.NVarChar ).Value = city;
 
-                    return Convert.ToInt32(cmd.ExecuteScalar());
-                }
-            }
+            return Convert.ToInt32( cmd.ExecuteScalar() );
         }
-
-        private static void UpdateOrderPrice(int orderId, string newPrice)
-        {
-            using (var connection = new SqlConnection(ConnectionString))
-            {
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandText = @"
-                        UPDATE [Order]
-                        SET [Price] = @newPrice
-                        WHERE OrderId = @orderId";
-
-                    command.Parameters.Add("@newPrice", SqlDbType.Int).Value = newPrice;
-                    command.Parameters.Add("@orderId", SqlDbType.Int).Value = orderId;
-                  
-                    command.ExecuteNonQuery();
-                }
-            }
-        }
-
-        private static void UpdateCustomerCity(int customerId, string newCity)
-        {
-            using (var connection = new SqlConnection(ConnectionString))
-            {
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandText = @"
-                        UPDATE [Customer]
-                        SET [City] = @newCity
-                        WHERE CustomerId = @customerId";
-
-                    command.Parameters.Add("@newcity", SqlDbType.NVarChar).Value = newCity;
-                    command.Parameters.Add("@customerId", SqlDbType.Int).Value = customerId;
-
-                    command.ExecuteNonQuery();
-                }
-            }
-        }
+       
     }
 }
